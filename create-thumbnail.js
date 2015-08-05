@@ -10,6 +10,9 @@ var fs = require('fs');
 var widths = [800, 400, 200];
 var heights = [600, 300, 150];
 
+var originalWidth = 0;
+var originalHeight = 0;
+
 var thumbnailJobs = widths.length;
 
 // get reference to S3 client 
@@ -18,10 +21,9 @@ var s3 = new AWS.S3();
 exports.handler = function(event, context) {
 	// Read options from the event.
 	console.log("Reading options from event:\n", util.inspect(event, {depth: 5}));
-	var srcBucket = event.Records[0].s3.bucket.name;
+	var srcBucket = event.s3.bucket;
 	// Object key may have spaces or unicode non-ASCII characters.
-    var srcKey    =
-    decodeURIComponent(event.Records[0].s3.object.key.replace(/\+/g, " "));  
+    var srcKey  =  decodeURIComponent(event.s3.key.replace(/\+/g, " "));  
 	var dstBucket = "dlcs-thumbs";
 	// srcKey like 2/1/image-id.jp2
 	// for base we want 2/1/image-id
@@ -64,6 +66,8 @@ function writeThumbnail(width, height, dstKey, dstBucket, context) {
 	var readStream = fs.createReadStream('/tmp/object.jp2');
 	gm(readStream, '/tmp/object.jp2')
 		.size({bufferStream: true}, function(err, size) {
+			originalWidth = size.width;
+			originalHeight = size.height;
 			this.resize(width, height);
 			this.write(tmpFilename, function(err) {
 				if(err) { console.log('error while writing: ' + err); }
@@ -98,7 +102,7 @@ function closeContextIfFinished(context) {
 	console.log('reducing number of outstanding jobs.');
 	if(thumbnailJobs == 0) {
 		console.log('outstanding jobs at zero. signalling end of context.');
-		context.done();
+		context.succeed({width: originalWidth, height: originalHeight});
 	}
 }
 	
