@@ -23,8 +23,9 @@ exports.handler = function(event, context) {
 	console.log("Reading options from event:\n", util.inspect(event, {depth: 5}));
 	var srcBucket = event.s3.bucket;
 	// Object key may have spaces or unicode non-ASCII characters.
-    var srcKey  =  decodeURIComponent(event.s3.key.replace(/\+/g, " "));  
-	var dstBucket = "dlcs-thumbs";
+    var srcKey  =  decodeURIComponent(event.s3.key.replace(/\+/g, " "));
+	
+	var dstBucket = event.targetBucket;
 	// srcKey like 2/1/image-id.jp2
 	// for base we want 2/1/image-id
 	
@@ -98,10 +99,10 @@ function writeThumbnail(width, height, dstKey, dstBucket, context) {
 }
 
 function closeContextIfFinished(context) {
+	console.log('reducing number of outstanding jobs (currently: ' + thumbnailJobs + ').');
 	thumbnailJobs--;
-	console.log('reducing number of outstanding jobs.');
-	if(thumbnailJobs == 0) {
-		console.log('outstanding jobs at zero. signalling end of context.');
+	if(thumbnailJobs <= 0) {
+		console.log('outstanding jobs <= zero. signalling end of context.');
 		context.succeed({width: originalWidth, height: originalHeight});
 	}
 }
