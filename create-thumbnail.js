@@ -123,7 +123,7 @@ function closeContextIfFinished(context) {
 	thumbnailJobs--;
 	if(thumbnailJobs <= 0) {
 		console.log('outstanding jobs <= zero. signalling end of context.');
-		var result = {originalWidth: originalWidth, originalHeight: originalHeight};
+		var result = {originalWidth: originalWidth, originalHeight: originalHeight, thumbnails: widths.length};
 		for(var i = 0; i < widths.length; i++) {
 			result[i] = thumbnailSizes[i];
 		}
