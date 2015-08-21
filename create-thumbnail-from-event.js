@@ -21,12 +21,12 @@ var s3 = new AWS.S3();
 
 exports.handler = function(event, context) {
 	// Read options from the event.
-	console.log("Reading options from event:\n", util.inspect(event, {depth: 5}));
-	var srcBucket = event.s3.bucket;
+	console.log("Reading options from event.");
+	var srcBucket = event.Records[0].s3.bucket.name;
 	// Object key may have spaces or unicode non-ASCII characters.
-    var srcKey  =  decodeURIComponent(event.s3.key.replace(/\+/g, " "));
+    var srcKey  =  decodeURIComponent(event.Records[0].s3.object.key.replace(/\+/g, " "));
 	
-	var dstBucket = event.targetBucket;
+	var dstBucket = "dlcs-thumbs";
 	// srcKey like 2/1/image-id.jp2
 	// for base we want 2/1/image-id
 	
