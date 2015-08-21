@@ -6,7 +6,7 @@ var gm = require('gm')
 var util = require('util');
 var fs = require('fs');
 
-// constants
+// constants for bounding boxes
 var widths = [800, 400, 200];
 var heights = [600, 300, 150];
 
@@ -14,6 +14,7 @@ var originalWidth = 0;
 var originalHeight = 0;
 
 var thumbnailJobs = widths.length;
+var thumbnailSizes = new Array(widths.length);
 
 // get reference to S3 client 
 var s3 = new AWS.S3();
@@ -51,8 +52,8 @@ exports.handler = function(event, context) {
 								console.log('widths=' + widths.length);
 
 								for(var i = 0; i < widths.length; i++) {
-									var dstKey = dstKeyBase + "/full/" + widths[i] + "," + heights[i] + "/0/default.jpg";
-									writeThumbnail(widths[i], heights[i], dstKey, dstBucket, context);
+									
+									writeThumbnail(i, widths[i], heights[i], dstKeyBase, dstBucket, context);
 								}
 							}
 						}
@@ -61,14 +62,33 @@ exports.handler = function(event, context) {
 			});
 	};
 
-function writeThumbnail(width, height, dstKey, dstBucket, context) {
-	console.log('writeThumbnail(' + width + ', ' + height + ', ' + dstKey + ', ' + dstBucket +')');
-	var tmpFilename = '/tmp/object-' + width + 'x' + height + '.jpg';
+function writeThumbnail(index, requiredWidth, requiredHeight, dstKeyBase, dstBucket, context) {
+	console.log('writeThumbnail(' + requiredWidth + ', ' + requiredHeight + ', ' + dstKeyBase + ', ' + dstBucket +')');
+	var tmpFilename = '/tmp/object-' + requiredWidth + 'x' + requiredHeight + '.jpg';
 	var readStream = fs.createReadStream('/tmp/object.jp2');
 	gm(readStream, '/tmp/object.jp2')
 		.size({bufferStream: true}, function(err, size) {
 			originalWidth = size.width;
 			originalHeight = size.height;
+			
+			var width;
+			var height;
+			
+			if(originalWidth <= requiredWidth && height <= requiredHeight) {
+				width = originalWidth;
+				height = originalHeight;
+			} else {
+				var scale1 = (requiredWidth / originalWidth);
+				var scale2 = (requiredHeight / originalHeight);
+				var scale = Math.min(scale1, scale2);
+				width = Math.round(scale * originalWidth);
+				height = Math.round(scale * originalHeight);
+			}
+			
+			thumbnailSizes[index] = { width: width, height: height };
+			
+			var dstKey = dstKeyBase + "/full/" + width + "," + height + "/0/default.jpg";			
+			
 			this.resize(width, height);
 			this.write(tmpFilename, function(err) {
 				if(err) { console.log('error while writing: ' + err); }
@@ -103,7 +123,11 @@ function closeContextIfFinished(context) {
 	thumbnailJobs--;
 	if(thumbnailJobs <= 0) {
 		console.log('outstanding jobs <= zero. signalling end of context.');
-		context.succeed({width: originalWidth, height: originalHeight});
+		var result = {originalWidth: originalWidth, originalHeight: originalHeight};
+		for(var i = 0; i < widths.length; i++) {
+			result[i] = thumbnailSizes[i];
+		}
+		context.succeed(result);
 	}
 }
 	
