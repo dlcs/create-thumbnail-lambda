@@ -7,8 +7,8 @@ var util = require('util');
 var fs = require('fs');
 
 // constants for bounding boxes
-var widths = [800, 400, 200];
-var heights = [600, 300, 150];
+var widths = [1000, 800, 400, 200];
+var heights = [1000, 600, 300, 150];
 
 var originalWidth = 0;
 var originalHeight = 0;
@@ -85,10 +85,17 @@ function writeThumbnail(index, requiredWidth, requiredHeight, dstKeyBase, dstBuc
 			}
 			
 			thumbnailSizes[index] = { width: width, height: height };
-			
-			var dstKey = dstKeyBase + "/full/" + width + "," + height + "/0/default.jpg";			
-			
+
 			this.resize(width, height);
+
+			var dstKey = dstKeyBase;
+
+			if(index == 0) {
+				this.quality(85);
+				dstKey = dstKey + "/low.jpg";
+			} else {
+				dstKey = dstKey + "/full/" + width + "," + height + "/0/default.jpg";
+			}
 
 			var tmpFilename = '/tmp/object-' + width + 'x' + height + '.jpg';
 
@@ -110,7 +117,7 @@ function writeThumbnail(index, requiredWidth, requiredHeight, dstKeyBase, dstBuc
 									console.log(err);
 								} else {
 									console.log('good for ' + dstKey);
-									closeContextIfFinished(context, dstBucket, dstKeyBase);
+									closeContextIfFinished(index, context, dstBucket, dstKeyBase);
 								}
 							});
 						});
@@ -120,7 +127,7 @@ function writeThumbnail(index, requiredWidth, requiredHeight, dstKeyBase, dstBuc
 		});
 }
 
-function closeContextIfFinished(context, dstBucket, dstKeyBase) {
+function closeContextIfFinished(index, context, dstBucket, dstKeyBase) {
 	console.log('reducing number of outstanding jobs (currently: ' + thumbnailJobs + ').');
 	thumbnailJobs--;
 	if(thumbnailJobs <= 0) {
@@ -141,7 +148,7 @@ function writeInfoJson(dstBucket, dstKeyBase, continuation) {
 	var s3ThumbsUri = 'http://' + dstBucket + '.s3.eu-west-1.amazonaws.com/' + dstKeyBase;
 	
 	var thumbSizesSnippet = '';
-	for(var i = 0; i < widths.length; i++) {
+	for(var i = 1; i < widths.length; i++) { // skip first set of dimensions
 		thumbSizesSnippet = thumbSizesSnippet + '{ "width": ' + thumbnailSizes[i].width + ', "height": ' + thumbnailSizes[i].height + ' }';
 		if(i < widths.length - 1) {
 			thumbSizesSnippet = thumbSizesSnippet + ',\n';
