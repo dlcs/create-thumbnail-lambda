@@ -91,7 +91,7 @@ function writeThumbnail(index, requiredWidth, requiredHeight, dstKeyBase, dstBuc
 			var dstKey = dstKeyBase;
 
 			if(index == 0) {
-				this.quality(85);
+				this.quality(95);
 				dstKey = dstKey + "/low.jpg";
 			} else {
 				dstKey = dstKey + "/full/" + width + "," + height + "/0/default.jpg";
@@ -117,7 +117,7 @@ function writeThumbnail(index, requiredWidth, requiredHeight, dstKeyBase, dstBuc
 									console.log(err);
 								} else {
 									console.log('good for ' + dstKey);
-									closeContextIfFinished(index, context, dstBucket, dstKeyBase);
+									closeContextIfFinished(context, dstBucket, dstKeyBase);
 								}
 							});
 						});
@@ -127,7 +127,7 @@ function writeThumbnail(index, requiredWidth, requiredHeight, dstKeyBase, dstBuc
 		});
 }
 
-function closeContextIfFinished(index, context, dstBucket, dstKeyBase) {
+function closeContextIfFinished(context, dstBucket, dstKeyBase) {
 	console.log('reducing number of outstanding jobs (currently: ' + thumbnailJobs + ').');
 	thumbnailJobs--;
 	if(thumbnailJobs <= 0) {
