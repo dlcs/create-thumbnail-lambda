@@ -27,6 +27,11 @@ exports.handler = function(event, context) {
     var srcKey  =  decodeURIComponent(event.Records[0].s3.object.key.replace(/\+/g, " "));
 	
 	var dstBucket = "dlcs-thumbs";
+	
+	if(srcBucket === "dlcs-storage-dev") {
+		dstBucket = dstBucket + "-dev";
+	}
+	
 	// srcKey like 2/1/image-id.jp2
 	// for base we want 2/1/image-id
 	
